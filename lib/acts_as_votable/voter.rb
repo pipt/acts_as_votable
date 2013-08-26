@@ -53,25 +53,25 @@ module ActsAsVotable
 
     # results
     def voted_on? votable, args={}
-      votes = find_votes(:votable_id => votable.id, :votable_type => votable.class.name,
+      votes = find_votes(:votable_id => votable.id, :votable_type => votable_type(votable),
                          :vote_scope => args[:vote_scope])
       votes.size > 0
     end
 
     def voted_up_on? votable, args={}
-      votes = find_votes(:votable_id => votable.id, :votable_type => votable.class.name,
+      votes = find_votes(:votable_id => votable.id, :votable_type => votable_type(votable),
                          :vote_scope => args[:vote_scope], :vote_flag => true)
       votes.size > 0
     end
 
     def voted_down_on? votable, args={}
-      votes = find_votes(:votable_id => votable.id, :votable_type => votable.class.name,
+      votes = find_votes(:votable_id => votable.id, :votable_type => votable_type(votable),
                          :vote_scope => args[:vote_scope], :vote_flag => false)
       votes.size > 0
     end
 
     def voted_as_when_voting_on votable, args={}
-      votes = find_votes(:votable_id => votable.id, :votable_type => votable.class.name,
+      votes = find_votes(:votable_id => votable.id, :votable_type => votable_type(votable),
                          :vote_scope => args[:vote_scope])
       return nil if votes.size == 0
       return votes.first.vote_flag
@@ -90,7 +90,12 @@ module ActsAsVotable
     end
 
     def find_votes_for_class klass, extra_conditions = {}
-      find_votes extra_conditions.merge({:votable_type => klass.name})
+      votable_type = if klass.respond_to?(:votable_type)
+        klass.votable_type
+      else
+        klass.name
+      end
+      find_votes extra_conditions.merge({:votable_type => votable_type})
     end
 
     def find_up_votes_for_class klass, args={}
@@ -129,6 +134,14 @@ module ActsAsVotable
 
     def get_down_voted klass
       klass.joins(:votes).merge find_down_votes
+    end
+
+    def votable_type votable
+      if votable.class.respond_to?(:votable_type)
+        votable.class.votable_type
+      else
+        votable.class.name
+      end
     end
   end
 end
